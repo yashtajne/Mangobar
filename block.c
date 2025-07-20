@@ -1,4 +1,6 @@
 #include "block.h"
+#include <stdio.h>
+
 
 M_Color hex_to_rgb(const char *hex) {
     if (!hex || hex[0] != '#' || strlen(hex) != 7)
@@ -48,20 +50,38 @@ M_Color hsv_to_rgb(float h, float s, float v) {
 }
 
 
-struct M_BlockInfo Mf_GetBlockStats(cairo_t *cr, void *block)
+void Mf_PrintBlock(M_TextBlock *block)
 {
-    struct M_TextBlock* b = block;
+    printf("Block %p\n 1. %s\n 2. %s\n 3. %s\n 4. %s\n", block,
+           block->name, block->text,
+           block->text_color, block->background_color);
+    fflush(stdout);
+}
 
+
+M_TextBlock* Mf_SearchBlock(M_TextBlock* list[], size_t list_size, const char* block_name)
+{
+    for (size_t i = 0; i < list_size; i++) {
+        if (strcmp(((M_TextBlock*)list[i])->name, block_name) == 0) {
+            return list[i];
+        }
+    }
+    return NULL;
+}
+
+
+struct M_BlockInfo Mf_GetBlockInfo(cairo_t *cr, M_TextBlock *block)
+{
     cairo_text_extents_t extents;
-    cairo_text_extents(cr, b->text, &extents);
-
     cairo_font_extents_t fextents;
-    cairo_font_extents(cr, &fextents);
+    if (block->text != NULL) {
+        cairo_text_extents(cr, block->text, &extents);
+        cairo_font_extents(cr, &fextents);
+    }
 
     double text_height = fextents.ascent + fextents.descent;
     double text_width  = extents.width;
 
-    // double end_y = voffset + fextents.descent;
     return (struct M_BlockInfo) {
             .text_height  = text_height,
             .text_width   = text_width,
@@ -72,10 +92,10 @@ struct M_BlockInfo Mf_GetBlockStats(cairo_t *cr, void *block)
         };
 }
 
+
 void Mf_RenderBlock(cairo_t *cr, M_TextBlock *block,
                     int *position, int voffset,
-                    struct M_BlockInfo *bstats,
-                    enum Alignment align)
+                    struct M_BlockInfo *bstats)
 {
     extern cairo_font_face_t* GLOBAL_FONT;
 
@@ -100,16 +120,17 @@ void Mf_RenderBlock(cairo_t *cr, M_TextBlock *block,
         cairo_fill(cr);
     }
 
-    if (block->text_color) {
-        M_Color t = hex_to_rgb(block->text_color);
-        cairo_set_source_rgb(cr, t.r, t.g, t.b);
-    } else {
-        cairo_set_source_rgb(cr, 1.0, 1.0, 1.0);
+    if (block->text) {
+        if (block->text_color) {
+            M_Color t = hex_to_rgb(block->text_color);
+            cairo_set_source_rgb(cr, t.r, t.g, t.b);
+        } else {
+            cairo_set_source_rgb(cr, 1.0, 1.0, 1.0);
+        }
+
+        cairo_move_to(cr, pos, voffset);
+        cairo_show_text(cr, block->text);
     }
-
-    cairo_move_to(cr, pos, voffset);
-    cairo_show_text(cr, block->text);
-
 
     int end_x = pos + bstats->x_advance;
     *position = end_x;

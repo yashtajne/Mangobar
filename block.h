@@ -12,11 +12,6 @@
 #include "font.h"
 
 
-enum Alignment {
-    LEFT,
-    CENTER,
-    RIGHT,
-};
 
 struct M_BlockInfo {
 
@@ -37,21 +32,21 @@ typedef struct M_Color {
 typedef struct M_TextBlock {
 
     char
+        *name,
         *text, *font,
         *text_color, *background_color;
-
-    enum Alignment place_self;
 
 } M_TextBlock;
 
 
-struct M_BlockInfo Mf_GetBlockStats(cairo_t *cr, void *block);
+M_Color hex_to_rgb(const char *hex);
 
+void Mf_PrintBlock(M_TextBlock *block);
+M_TextBlock* Mf_SearchBlock(M_TextBlock* list[], size_t list_size, const char* block_name);
+struct M_BlockInfo Mf_GetBlockInfo(cairo_t *cr, M_TextBlock *block);
 void Mf_RenderBlock(cairo_t *cr, M_TextBlock *block,
                     int *position, int voffset,
-                    struct M_BlockInfo *bstats,
-                    enum Alignment align);
+                    struct M_BlockInfo *bstats);
 
-M_Color hex_to_rgb(const char *hex);
 
 #endif // _BLOCK_H_
