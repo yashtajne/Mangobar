@@ -1,5 +1,4 @@
 #include "block.h"
-#include <stdio.h>
 
 
 M_Color hex_to_rgb(const char *hex) {
@@ -59,7 +58,7 @@ void Mf_PrintBlock(M_TextBlock *block)
 }
 
 
-M_TextBlock* Mf_SearchBlock(M_TextBlock* list[], size_t list_size, const char* block_name)
+M_TextBlock* Mf_SearchBlock(void **list, size_t list_size, const char *block_name)
 {
     for (size_t i = 0; i < list_size; i++) {
         if (strcmp(((M_TextBlock*)list[i])->name, block_name) == 0) {
@@ -134,4 +133,50 @@ void Mf_RenderBlock(cairo_t *cr, M_TextBlock *block,
 
     int end_x = pos + bstats->x_advance;
     *position = end_x;
+}
+
+
+void Mf_RenderSection(cairo_t *cr, void *section,
+                      size_t section_size, enum PenPos pp)
+{
+    extern int V_OFFSET, H_PADDING, screen_width;
+
+    if (section_size > 0) {
+
+        // Render first block
+        int section_width = 0;
+        for (size_t i = 0; i < section_size; i++) {
+            M_TextBlock* nblock = ((M_TextBlock**)section)[i];
+            struct M_BlockInfo nbstats = Mf_GetBlockInfo(cr, nblock);
+            section_width += (int) nbstats.text_width;
+        }
+
+        int pen_pos;
+        switch (pp) {
+            case START:
+                pen_pos = 0;
+                break;
+            case CENTER:
+                pen_pos = (screen_width / 2) - (section_width / 2);
+                break;
+            case END:
+                pen_pos = screen_width - section_width - H_PADDING;
+        }
+
+        struct M_BlockInfo b1_stats = Mf_GetBlockInfo(cr, ((M_TextBlock**)section)[0]);
+        Mf_RenderBlock(cr, ((M_TextBlock**)section)[0],
+                       &pen_pos, V_OFFSET,
+                       &b1_stats);
+
+        // Render rest
+        for (size_t i = 1; i < section_size; i++) {
+            struct M_BlockInfo bstats = Mf_GetBlockInfo(cr, ((M_TextBlock**)section)[i]);
+            Mf_RenderBlock(cr, ((M_TextBlock**)section)[i],
+                           &pen_pos, V_OFFSET,
+                           &bstats);
+            if (i == section_size - 1) {
+                break;
+            }
+        }
+    }
 }

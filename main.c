@@ -18,27 +18,35 @@
 
 #include "block.h"
 #include "font.h"
-#include "x11utils.h"
 #include "config.h"
 
 
-M_TextBlock* left_blocks[MAX_BLOCKS_IN_SECTION]   = {};
-M_TextBlock* center_blocks[MAX_BLOCKS_IN_SECTION] = {};
-M_TextBlock* right_blocks[MAX_BLOCKS_IN_SECTION]  = {};
+
+void* left_blocks[MAX_BLOCKS_IN_SECTION]   = {};
+void* center_blocks[MAX_BLOCKS_IN_SECTION] = {};
+void* right_blocks[MAX_BLOCKS_IN_SECTION]  = {};
 
 size_t left_blocks_length  = 0;
 size_t mid_blocks_length   = 0;
 size_t right_blocks_length = 0;
 
+void** command_blocks;
+size_t command_blocks_length = 20;
+
 
 Display*           display;
 int                screen;
+int                screen_width;
 int                workspace;
 cairo_font_face_t* GLOBAL_FONT;
 
 
+int V_OFFSET  = 18;
+int H_PADDING = 5;
 
 int main(int argc, char** argv) {
+
+    command_blocks = (void**)malloc(command_blocks_length * sizeof(void*));
 
     if (ini_parse("config", Mf_inihandler, NULL) < 0) {
         printf("Failed to load config.ini\n");
@@ -55,9 +63,7 @@ int main(int argc, char** argv) {
 
     screen = DefaultScreen(display);
     Window root = RootWindow(display, screen);
-
-    int screen_width = DisplayWidth(display, screen);
-
+    screen_width = DisplayWidth(display, screen);
     Window window = XCreateSimpleWindow(display, root, 0, 0,
                                         screen_width, BAR_HEIGHT,
                                         0, 0, 0);
@@ -130,84 +136,21 @@ int main(int argc, char** argv) {
         /**
          * Left Section Blocks Rendering
          * */
-        if (left_blocks_length > 0) {
-            int left_pen_pos = H_PADDING;
-            for (size_t i = 0; i < left_blocks_length; i++) {
-                struct M_BlockInfo bstats = Mf_GetBlockInfo(cr, left_blocks[i]);
-                Mf_RenderBlock(cr, left_blocks[i],
-                               &left_pen_pos, V_OFFSET,
-                               &bstats);
-            }
-        }
-
+        Mf_RenderSection(cr, left_blocks, left_blocks_length,
+                         START);
 
         /**
          * Middle Section Blocks Rendering
          * */
-        if (mid_blocks_length > 0) {
-            // Render first block
-            int mid_section_width = 0;
-            for (size_t i = 0; i < mid_blocks_length; i++) {
-                M_TextBlock* nblock = center_blocks[i];
-                struct M_BlockInfo nbstats = Mf_GetBlockInfo(cr, nblock);
-                mid_section_width += (int) nbstats.text_width;
-            }
-
-            // Render rest
-            int mid_pen_pos = (screen_width / 2) - (mid_section_width / 2);
-            struct M_BlockInfo mb1_stats = Mf_GetBlockInfo(cr, center_blocks[0]);
-            Mf_RenderBlock(cr, center_blocks[0],
-                           &mid_pen_pos, V_OFFSET,
-                           &mb1_stats);
-
-            for (size_t i = 1; i < mid_blocks_length; i++) {
-                struct M_BlockInfo bstats = Mf_GetBlockInfo(cr, center_blocks[i]);
-                if (i == mid_blocks_length - 1) {
-                    Mf_RenderBlock(cr, center_blocks[i],
-                                   &mid_pen_pos, V_OFFSET,
-                                   &bstats);
-                    break;
-                }
-                Mf_RenderBlock(cr, center_blocks[i],
-                               &mid_pen_pos, V_OFFSET,
-                               &bstats);
-            }
-        }
-
+        Mf_RenderSection(cr, center_blocks, mid_blocks_length,
+                         CENTER);
 
         /**
          * Right Section Blocks Rendering
          * */
-        if (right_blocks_length > 0) {
-            // Render first block
-            int right_section_width = 0;
-            for (size_t i = 0; i < right_blocks_length; i++) {
-                M_TextBlock* nblock = right_blocks[i];
-                struct M_BlockInfo nbstats = Mf_GetBlockInfo(cr, nblock);
-                right_section_width += (int) nbstats.text_width;
-            }
-
-            // Render rest
-            int right_pen_pos = screen_width - right_section_width - H_PADDING;
-            struct M_BlockInfo rb1_stats = Mf_GetBlockInfo(cr, right_blocks[0]);
-            Mf_RenderBlock(cr, right_blocks[0],
-                           &right_pen_pos, V_OFFSET,
-                           &rb1_stats);
-
-            for (size_t i = 1; i < right_blocks_length; i++) {
-                struct M_BlockInfo bstats = Mf_GetBlockInfo(cr, right_blocks[i]);
-                if (i == right_blocks_length - 1) {
-                    Mf_RenderBlock(cr, right_blocks[i],
-                                   &right_pen_pos, V_OFFSET,
-                                   &bstats);
-                    break;
-                }
-                Mf_RenderBlock(cr, right_blocks[i],
-                               &right_pen_pos, V_OFFSET,
-                               &bstats);
-            }
-        }
-
+        Mf_RenderSection(cr, right_blocks,
+                         right_blocks_length,
+                         END);
 
         usleep(16666);
         XFlush(display);

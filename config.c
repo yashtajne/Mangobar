@@ -2,9 +2,10 @@
 #include <stddef.h>
 
 
-extern M_TextBlock* left_blocks[];
-extern M_TextBlock* center_blocks[];
-extern M_TextBlock* right_blocks[];
+
+extern void* left_blocks[];
+extern void* center_blocks[];
+extern void* right_blocks[];
 
 extern size_t left_blocks_length;
 extern size_t mid_blocks_length;
@@ -19,6 +20,10 @@ void _process() {
     workspace = get_current_desktop(display);
 }
 
+
+int Mf_ConfigPhase1(void* user, const char* section, const char* key, const char* value) {
+    return 0;
+}
 
 int Mf_inihandler(void* user, const char* section, const char* key, const char* value) {
     printf("Section: %s, Key: %s, Value: %s\n", section, key, value);
